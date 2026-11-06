@@ -1,0 +1,24 @@
+.gp-ticket-assignment-logs { margin-top: 20px; padding: 25px 28px; border: 1px solid #e1e9e3; border-radius: 9px; background: #fff; }
+.gp-ticket-assignment-logs > header h2 { display: flex; align-items: center; gap: 9px; margin: 0; color: #334a3b; font-size: 16px; font-weight: 600; }
+.gp-ticket-assignment-logs > header p { margin: 9px 0 0; color: #8b9b90; font-size: 12px; line-height: 1.8; }
+.gp-ticket-assignment-logs__state { margin: 20px 0 0; padding: 19px; border-radius: 6px; color: #96a69b; background: #f8faf8; font-size: 12px; line-height: 1.8; }
+.gp-ticket-assignment-logs__error { margin-top: 20px; padding: 15px; border-radius: 6px; color: #aa625c; background: #fcf1f0; font-size: 12px; line-height: 1.8; }
+.gp-ticket-assignment-logs__error p { margin: 0 0 12px; }
+.gp-ticket-assignment-log-list { margin: 23px 0 0; padding: 0; list-style: none; }
+.gp-ticket-assignment-log-list > li { padding: 18px 0; border-top: 1px solid #edf1ee; }
+.gp-ticket-assignment-log-list > li:first-child { padding-top: 0; border-top: 0; }
+.gp-ticket-assignment-log-list > li:last-child { padding-bottom: 0; }
+.gp-ticket-assignment-log-list > li > header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+.gp-ticket-assignment-log-list time { color: #83978a; font-size: 11px; font-variant-numeric: tabular-nums; }
+.gp-ticket-assignment-log-actor { display: flex; align-items: center; gap: 12px; }
+.gp-ticket-assignment-log-actor > span { color: #9aa99f; font-size: 10px; }
+.gp-ticket-assignment-log-list dl { margin: 17px 0 0; display: grid; gap: 12px; }
+.gp-ticket-assignment-log-list dl > div { display: flex; align-items: flex-start; gap: 17px; }
+.gp-ticket-assignment-log-list dt { flex: 0 0 40px; padding-top: 3px; color: #8b9d91; font-size: 11px; line-height: 1.8; }
+.gp-ticket-assignment-log-list dd { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin: 0; min-width: 0; }
+.gp-ticket-assignment-log-list dd > span { display: flex; align-items: flex-start; gap: 9px; min-width: 0; }
+.gp-ticket-assignment-log-list dd > span > small { padding-top: 2px; flex-shrink: 0; color: #a5b2a9; font-size: 10px; line-height: 1.8; }
+.gp-ticket-assignment-log-list dd > svg { flex-shrink: 0; color: #a4b6aa; }
+.gp-ticket-assignment-log-list dd > em { color: #a5b2a9; font-size: 10px; font-style: normal; }
+.gp-ticket-assignment-log-list .gp-ticket-person { max-width: 245px; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .gp-ticket-assignment-logs { padding: 21px 17px; } .gp-ticket-assignment-log-list > li > header { align-items: flex-start; flex-direction: column; } .gp-ticket-assignment-log-list dd { gap: 10px; } .gp-ticket-assignment-log-list dd > span { flex-basis: 100%; } .gp-ticket-assignment-log-list dd > svg { margin-left: 40px; transform: rotate(90deg); } }

@@ -1,0 +1,40 @@
+/**
+ * Design tokens — GlobalPilot overseas brand system
+ * Ocean navigation: cool mist surfaces, ink type, sea teal signal
+ */
+:root {
+  /* Surfaces */
+  --gp-bg: #f2f5f8;
+  --gp-bg-elevated: #ffffff;
+  --gp-bg-ink: #0a1628;
+  --gp-bg-mist: #e8eef4;
+
+  /* Text */
+  --gp-ink: #0a1628;
+  --gp-ink-soft: #3d4f63;
+  --gp-ink-muted: #6b7c8f;
+  --gp-on-ink: #f2f5f8;
+  --gp-on-ink-muted: rgba(242, 245, 248, 0.68);
+
+  /* Brand */
+  --gp-sea: #0f766e;
+  --gp-sea-deep: #0a5c56;
+  --gp-sea-glow: #14b8a6;
+  --gp-signal: #d97706;
+  --gp-line: rgba(10, 22, 40, 0.1);
+  --gp-line-strong: rgba(10, 22, 40, 0.18);
+
+  /* Type */
+  --gp-font-display: 'Syne', sans-serif;
+  --gp-font-body: 'Figtree', sans-serif;
+
+  /* Layout */
+  --gp-appbar-h: 4.25rem;
+  --gp-page-pad: clamp(1.25rem, 4vw, 3.5rem);
+  --gp-max: 72rem;
+  --gp-max-wide: 84rem;
+
+  /* Motion */
+  --gp-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --gp-duration: 0.65s;
+}

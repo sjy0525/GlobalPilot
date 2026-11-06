@@ -1,0 +1,61 @@
+.DS_Store
+.idea
+.vscode
+.pnpm-store/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-docling/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Secrets
+.env
+.env.*
+*.env
+*.env.*
+.envrc
+.envrc.*
+.netrc
+.npmrc
+.pypirc
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+
+# Local data and generated verification artifacts
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
+*.pid
+**/test-results/
+globalpilot-backend/docs/index-audit/
+globalpilot-backend/docs/verification/
+coverage/
+.coverage
+.coverage.*
+htmlcov/
+.ruff_cache/
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

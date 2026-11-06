@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.5-pg17-bookworm
+    container_name: globalpilot-postgres
+    environment:
+      POSTGRES_USER: sjy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: globalpilot
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - globalpilot_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sjy -d globalpilot"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  globalpilot_pgdata:

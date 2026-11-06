@@ -1,0 +1,46 @@
+.gp-ticket-create { padding: 30px 36px 44px; }
+.gp-ticket-create__inner { width: min(100%, 850px); margin: 0 auto; }
+.gp-ticket-back { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 26px; color: #82938b; font-size: 12px; }
+.gp-ticket-back:hover { color: var(--gp-sea); }
+.gp-ticket-eyebrow { margin: 0 0 8px; color: #7b9486; font-size: 11px; }
+.gp-ticket-heading h1, .gp-ticket-receipt h1 { margin: 0; color: #2e3e4d; font-size: 26px; font-weight: 600; }
+.gp-ticket-heading > p:last-child { margin: 12px 0 24px; color: #8b98a3; font-size: 12px; line-height: 1.8; }
+.gp-ticket-form, .gp-ticket-receipt { padding: 27px 30px; border: 1px solid #e4ebe7; border-radius: 10px; background: #fff; }
+.gp-ticket-field { min-width: 0; margin-bottom: 22px; }
+.gp-ticket-field > label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; color: #526879; font-size: 12px; }
+.gp-ticket-field > label > span { color: #99a8a0; font-size: 10px; }
+.gp-ticket-field input, .gp-ticket-field textarea, .gp-ticket-field select { display: block; width: 100%; min-height: 40px; padding: 10px 12px; border: 1px solid #dfe7e3; border-radius: 6px; color: #425866; background: #fff; font: inherit; font-size: 12px; line-height: 1.7; }
+.gp-ticket-field textarea { resize: vertical; min-height: 135px; }
+.gp-ticket-field select { overflow: hidden; text-overflow: ellipsis; }
+.gp-ticket-field input::placeholder, .gp-ticket-field textarea::placeholder { color: #a4b0b7; }
+.gp-ticket-field :disabled { color: #9aa8a1; background: #f7f9f8; cursor: not-allowed; }
+.gp-ticket-people-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 26px 0 18px; padding-top: 22px; border-top: 1px solid #edf1ee; }
+.gp-ticket-people-heading h2 { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: #526879; font-size: 13px; font-weight: 500; }
+.gp-ticket-refresh { display: inline-flex; align-items: center; gap: 6px; padding: 5px; border: 0; color: var(--gp-sea); background: transparent; font-size: 11px; cursor: pointer; }
+.gp-ticket-refresh:disabled { opacity: .5; cursor: not-allowed; }
+.gp-ticket-people { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.gp-ticket-people .gp-ticket-field { margin-bottom: 10px; }
+.gp-ticket-hint { margin: 0; color: #94a39b; font-size: 11px; line-height: 1.8; }
+.gp-ticket-error, .gp-ticket-warning { margin: 14px 0; padding: 10px 12px; border: 1px solid #f0ded9; border-radius: 6px; color: #a35e53; background: #fcf4f1; font-size: 12px; line-height: 1.8; }
+.gp-ticket-warning { border-color: #eee4cc; color: #8d794b; background: #fcf9ef; }
+.gp-ticket-error p { margin: 0; }
+.gp-ticket-error button { margin-top: 7px; padding: 0; border: 0; color: inherit; background: transparent; text-decoration: underline; cursor: pointer; }
+.gp-ticket-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 27px; padding-top: 22px; border-top: 1px solid #edf1ee; }
+.gp-ticket-form-footer > span { color: #8d9e94; font-size: 11px; overflow-wrap: anywhere; }
+.gp-ticket-primary, .gp-ticket-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 9px 15px; border: 1px solid var(--gp-sea); border-radius: 6px; color: #fff; background: var(--gp-sea); font-size: 12px; cursor: pointer; white-space: nowrap; }
+.gp-ticket-primary:hover { filter: brightness(.96); }
+.gp-ticket-primary:disabled { border-color: #ccd8d0; color: #f6f8f7; background: #ccd8d0; cursor: not-allowed; }
+.gp-ticket-secondary { border-color: #dce6e0; color: #6a8374; background: #fff; }
+.gp-ticket-success-icon { margin-bottom: 18px; color: var(--gp-sea); }
+.gp-ticket-receipt h2 { margin: 22px 0; color: #425866; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.gp-ticket-receipt dl { margin: 0; border-top: 1px solid #edf1ee; }
+.gp-ticket-receipt dl > div { display: grid; grid-template-columns: 85px minmax(0, 1fr); gap: 12px; padding: 14px 0; border-bottom: 1px solid #edf1ee; font-size: 12px; line-height: 1.8; }
+.gp-ticket-receipt dt { color: #8d9c93; }
+.gp-ticket-receipt dd { margin: 0; color: #526879; overflow-wrap: anywhere; }
+.gp-ticket-receipt code { color: #527763; font-size: 12px; }
+.gp-ticket-receipt dd small { display: block; margin-top: 3px; color: #9ba9a1; font-size: 10px; }
+.gp-ticket-description { white-space: pre-wrap; }
+.gp-ticket-status { display: inline-flex; padding: 2px 8px; border-radius: 4px; color: #557f68; background: #edf6ef; font-size: 11px; }
+.gp-ticket-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+@media (max-width: 760px) { .gp-ticket-create { padding: 24px 18px 35px; } .gp-ticket-form, .gp-ticket-receipt { padding: 23px 20px; } }
+@media (max-width: 520px) { .gp-ticket-people { grid-template-columns: minmax(0, 1fr); gap: 12px; } .gp-ticket-receipt dl > div { grid-template-columns: 64px minmax(0, 1fr); gap: 10px; } .gp-ticket-form-footer > span { max-width: 55%; } }

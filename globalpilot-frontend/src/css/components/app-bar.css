@@ -1,0 +1,95 @@
+@layer components {
+  .gp-appbar {
+    @apply fixed inset-x-0 top-0 z-50;
+    height: var(--gp-appbar-h);
+    background: color-mix(in srgb, var(--gp-bg) 78%, transparent);
+    border-bottom: 1px solid transparent;
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    transition:
+      background-color 0.35s var(--gp-ease),
+      border-color 0.35s var(--gp-ease),
+      box-shadow 0.35s var(--gp-ease);
+  }
+
+  .gp-appbar.is-scrolled {
+    background: color-mix(in srgb, var(--gp-bg-elevated) 88%, transparent);
+    border-bottom-color: var(--gp-line);
+    box-shadow: 0 8px 28px rgba(10, 22, 40, 0.04);
+  }
+
+  .gp-appbar__inner {
+    @apply mx-auto flex h-full items-center justify-between;
+    width: min(100%, var(--gp-max));
+    padding-inline: var(--gp-page-pad);
+  }
+
+  .gp-appbar__brand {
+    @apply flex items-center gap-2.5;
+    font-family: var(--gp-font-display);
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--gp-ink);
+  }
+
+  .gp-appbar__mark {
+    @apply relative grid size-8 place-items-center overflow-hidden;
+    border-radius: 0.35rem;
+    background: var(--gp-bg-ink);
+    color: var(--gp-sea-glow);
+  }
+
+  .gp-appbar__mark::after {
+    content: '';
+    @apply absolute inset-x-1 bottom-1 h-0.5;
+    background: var(--gp-sea-glow);
+    opacity: 0.85;
+  }
+
+  .gp-appbar__nav {
+    @apply hidden items-center gap-1 md:flex;
+  }
+
+  .gp-appbar__link {
+    @apply relative px-3 py-2 text-sm font-medium;
+    color: var(--gp-ink-soft);
+    transition: color 0.25s var(--gp-ease);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .gp-appbar__link:hover {
+    color: var(--gp-ink);
+  }
+
+  .gp-appbar__link.is-active {
+    color: var(--gp-ink);
+  }
+
+  .gp-appbar__link.is-active::after {
+    content: '';
+    @apply absolute bottom-1 left-3 right-3 h-px;
+    background: var(--gp-sea);
+  }
+
+  .gp-appbar__cta {
+    @apply hidden sm:inline-flex;
+  }
+
+  .gp-appbar__menu {
+    @apply inline-flex size-10 items-center justify-center md:hidden;
+    border-radius: 0.35rem;
+    color: var(--gp-ink);
+    background: transparent;
+    border: 1px solid var(--gp-line);
+  }
+
+  .gp-appbar__drawer {
+    @apply absolute inset-x-0 top-full flex flex-col gap-1 border-b p-3 md:hidden;
+    background: var(--gp-bg-elevated);
+    border-color: var(--gp-line);
+  }
+}
