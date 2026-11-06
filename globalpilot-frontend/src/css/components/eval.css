@@ -1,0 +1,145 @@
+@layer components {
+  .gp-eval__tabs {
+    @apply mb-6 flex gap-2 overflow-x-auto pb-1;
+  }
+
+  .gp-eval__tab {
+    @apply shrink-0 px-3 py-2 text-sm font-semibold;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--gp-ink-soft);
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .gp-eval__tab.is-active {
+    background: var(--gp-bg-elevated);
+    border-color: var(--gp-line-strong);
+    color: var(--gp-ink);
+  }
+
+  .gp-eval__chips {
+    @apply mt-4 flex flex-wrap gap-2;
+  }
+
+  .gp-eval__metrics {
+    @apply mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .gp-eval__metric {
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--gp-line);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--gp-bg-elevated) 92%, transparent);
+  }
+
+  .gp-eval__metric b {
+    display: block;
+    margin-top: 0.25rem;
+    font-family: var(--gp-font-display);
+    font-size: 1.35rem;
+    letter-spacing: -0.03em;
+  }
+
+  .gp-eval__metric span {
+    color: var(--gp-ink-muted);
+    font-size: 0.75rem;
+  }
+
+  .gp-eval__table-wrap {
+    overflow-x: auto;
+  }
+
+  .gp-eval__table {
+    @apply w-full text-left text-sm;
+    border-collapse: collapse;
+    min-width: 46rem;
+  }
+
+  .gp-eval__table th {
+    @apply px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em];
+    color: var(--gp-ink-muted);
+    border-bottom: 1px solid var(--gp-line);
+  }
+
+  .gp-eval__table td {
+    @apply px-3 py-3 align-top;
+    border-bottom: 1px solid var(--gp-line);
+  }
+
+  .gp-eval__row {
+    cursor: pointer;
+  }
+
+  .gp-eval__row:hover td {
+    background: color-mix(in srgb, var(--gp-sea) 5%, transparent);
+  }
+
+  .gp-eval__detail {
+    @apply grid gap-4;
+  }
+
+  @media (min-width: 900px) {
+    .gp-eval__detail {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .gp-eval__block {
+    @apply text-sm;
+    white-space: pre-wrap;
+    color: var(--gp-ink-soft);
+  }
+
+  .gp-eval__verdict {
+    @apply inline-flex rounded-full px-2 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em];
+  }
+
+  .gp-eval__verdict--pass {
+    background: color-mix(in srgb, var(--gp-sea) 14%, transparent);
+    color: var(--gp-sea-deep);
+  }
+
+  .gp-eval__verdict--fail {
+    background: color-mix(in srgb, #b42318 12%, transparent);
+    color: #b42318;
+  }
+
+  .gp-eval__verdict--pending {
+    background: color-mix(in srgb, var(--gp-signal) 16%, transparent);
+    color: #9a5b04;
+  }
+
+  .gp-eval__case {
+    @apply mb-3;
+    border: 1px solid var(--gp-line);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--gp-bg-elevated) 92%, transparent);
+  }
+
+  .gp-eval__case summary {
+    @apply cursor-pointer px-4 py-3 text-sm font-semibold;
+    list-style: none;
+  }
+
+  .gp-eval__case summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .gp-eval__case > div {
+    @apply px-4 pb-4 text-sm;
+    color: var(--gp-ink-soft);
+  }
+
+  .gp-eval__report {
+    @apply text-sm;
+    white-space: pre-wrap;
+    line-height: 1.6;
+    color: var(--gp-ink-soft);
+  }
+
+  .gp-eval__actions {
+    @apply mt-4 flex flex-wrap items-end gap-3;
+  }
+}

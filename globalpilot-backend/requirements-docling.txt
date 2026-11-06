@@ -1,0 +1,7 @@
+# Isolated PDF parser runtime (Python 3.12/3.13); see scripts/setup_docling.sh.
+docling==2.148.0
+docling-core==2.106.0
+docling-ibm-models==4.0.4
+torch==2.15.0
+torchvision==0.29.2
+transformers==5.22.1

@@ -1,0 +1,32 @@
+.gp-ticket-actions-panel { margin-top: 20px; padding: 25px 28px; border: 1px solid #e1e9e3; border-radius: 9px; background: #fff; }
+.gp-ticket-actions-panel > header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+.gp-ticket-actions-panel h2 { margin: 0; color: #334a3b; font-size: 16px; font-weight: 600; }
+.gp-ticket-actions-panel > header p { margin: 7px 0 0; color: #8b9b90; font-size: 12px; }
+.gp-ticket-action-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.gp-ticket-actions-panel form { margin-top: 22px; padding-top: 22px; border-top: 1px solid #edf1ee; }
+.gp-ticket-actions-panel form h3 { margin: 0 0 19px; color: #47614f; font-size: 14px; font-weight: 500; }
+.gp-ticket-action-field { display: flex; flex-direction: column; gap: 9px; margin-top: 17px; min-width: 0; }
+.gp-ticket-action-field > label { display: flex; align-items: center; gap: 10px; color: #5c7465; font-size: 12px; }
+.gp-ticket-action-field > label > span { color: #a3afa7; font-size: 10px; }
+.gp-ticket-action-field textarea, .gp-ticket-action-field select { width: 100%; box-sizing: border-box; padding: 12px 13px; border: 1px solid #dce6df; border-radius: 6px; background: #fff; color: #455f4f; font: inherit; font-size: 12px; line-height: 1.8; }
+.gp-ticket-action-field textarea { resize: vertical; min-height: 120px; }
+.gp-ticket-action-field textarea:focus, .gp-ticket-action-field select:focus { outline: 2px solid #b9d3c1; outline-offset: 1px; }
+.gp-ticket-action-field textarea:disabled, .gp-ticket-action-field select:disabled { opacity: .65; background: #f6f8f6; }
+.gp-ticket-review-options { display: flex; flex-wrap: wrap; gap: 17px; margin: 0; padding: 0; border: 0; }
+.gp-ticket-review-options legend { margin-bottom: 12px; color: #5c7465; font-size: 12px; }
+.gp-ticket-review-options label { display: inline-flex; align-items: center; gap: 7px; color: #5d7466; font-size: 12px; }
+.gp-ticket-review-options input { accent-color: var(--gp-sea); }
+.gp-ticket-action-people-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.gp-ticket-action-people-heading > p, .gp-ticket-action-hint { color: #8c9d91; font-size: 11px; line-height: 1.8; }
+.gp-ticket-action-people { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.gp-ticket-action-warning, .gp-ticket-action-error, .gp-ticket-action-success { margin: 17px 0 0; padding: 12px 14px; border-radius: 6px; font-size: 12px; line-height: 1.9; overflow-wrap: anywhere; }
+.gp-ticket-action-warning { color: #997a3c; background: #fcf8eb; }
+.gp-ticket-action-warning > p { margin: 0 0 10px; }
+.gp-ticket-action-warning > strong { font-weight: 500; }
+.gp-ticket-action-error { color: #aa625c; background: #fcf1f0; }
+.gp-ticket-action-success { display: flex; align-items: center; gap: 9px; color: #5c8769; background: #edf6ef; }
+.gp-ticket-action-success svg { flex-shrink: 0; }
+.gp-ticket-actions-panel form > footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-top: 22px; padding-top: 18px; border-top: 1px solid #edf1ee; }
+.gp-ticket-actions-panel form > footer > span { color: #9aa99e; font-size: 11px; }
+.gp-ticket-actions-panel form > footer > div { display: flex; gap: 9px; }
+@media (max-width: 640px) { .gp-ticket-actions-panel { padding: 21px 17px; } .gp-ticket-action-people { grid-template-columns: 1fr; gap: 0; } .gp-ticket-actions-panel form > footer > div { width: 100%; justify-content: flex-end; } }

@@ -1,0 +1,73 @@
+@layer components {
+  .gp-btn {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-5 py-3 text-sm font-semibold tracking-wide;
+    @apply transition-[transform,background-color,color,box-shadow] duration-300;
+    border-radius: 0.35rem;
+    font-family: var(--gp-font-body);
+    cursor: pointer;
+    border: 0;
+  }
+
+  .gp-btn:active {
+    transform: translateY(1px);
+  }
+
+  .gp-btn--primary {
+    background: var(--gp-sea);
+    color: var(--gp-on-ink);
+  }
+
+  .gp-btn--primary:hover {
+    background: var(--gp-sea-deep);
+  }
+
+  .gp-btn--ghost {
+    background: transparent;
+    color: var(--gp-ink);
+    box-shadow: inset 0 0 0 1px var(--gp-line-strong);
+  }
+
+  .gp-btn--ghost:hover {
+    background: color-mix(in srgb, var(--gp-ink) 4%, transparent);
+  }
+
+  .gp-btn--on-ink {
+    background: var(--gp-sea-glow);
+    color: var(--gp-bg-ink);
+  }
+
+  .gp-btn--on-ink:hover {
+    background: #5eead4;
+  }
+
+  .gp-btn--ghost-on-ink {
+    background: transparent;
+    color: var(--gp-on-ink);
+    box-shadow: inset 0 0 0 1px rgba(242, 245, 248, 0.28);
+  }
+
+  .gp-btn--ghost-on-ink:hover {
+    background: rgba(242, 245, 248, 0.08);
+  }
+
+  .gp-btn--danger {
+    background: transparent;
+    color: #b42318;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #b42318 35%, var(--gp-line-strong));
+  }
+
+  .gp-btn--danger:hover {
+    background: color-mix(in srgb, #b42318 8%, transparent);
+  }
+
+  .gp-btn--sm {
+    @apply px-3.5 py-2 text-sm;
+  }
+
+  .gp-btn:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
