@@ -180,7 +180,11 @@ class GraphTests(unittest.TestCase):
         doc = types.SimpleNamespace(metadata={"source": "brand.txt"}, page_content="Our product is blue.")
         cls.modules = patch.dict(sys.modules, {
             "app.infra.ai.llm": fake_module("app.infra.ai.llm", llm=RunnableLambda(model)),
-            "app.modules.rag.service": fake_module("app.modules.rag.service", search_documents=lambda *a, **k: [(doc, 0)]),
+            "app.modules.rag.service": fake_module(
+                "app.modules.rag.service",
+                search_documents=lambda *a, **k: [(doc, 0)],
+                format_retrieved_context=lambda docs: CONTEXT,
+            ),
             "app.modules.marketing.workflow.checkpointer": fake_module("app.modules.marketing.workflow.checkpointer", checkpointer=InMemorySaver()),
             "app.modules.marketing.workflow.research_agent": fake_module(
                 "app.modules.marketing.workflow.research_agent",

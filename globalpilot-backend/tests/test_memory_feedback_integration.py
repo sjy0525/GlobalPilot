@@ -54,6 +54,7 @@ class HumanReviewMemoryEventTests(unittest.TestCase):
             "app.modules.rag.service": fake_module(
                 "app.modules.rag.service",
                 search_documents=Mock(side_effect=AssertionError("RAG IO forbidden")),
+                format_retrieved_context=Mock(side_effect=AssertionError("RAG formatting forbidden")),
             ),
             "app.modules.marketing.workflow.research_agent": fake_module(
                 "app.modules.marketing.workflow.research_agent", research_agent=Mock(),

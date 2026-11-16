@@ -534,27 +534,28 @@ function ReviewList({
   )
 }
 
-function TaskDetail({ task, onReviewed }: { task: EvalTask; onReviewed: (task: EvalTask) => void }) {
-  const locked = task.timed_out || task.empty_output || task.execution_status === 'timeout' || task.execution_status === 'error'
-  const [note, setNote] = useState('')
-  const [pending, setPending] = useState(false)
-  const [localError, setLocalError] = useState<string | null>(null)
-  const [draft, setDraft] = useState<Record<(typeof DIMENSIONS)[number][0], Verdict>>({
+function taskVerdicts(task: EvalTask): Record<(typeof DIMENSIONS)[number][0], Verdict> {
+  return {
     facts: task.scores?.facts?.verdict || 'pending',
     completeness: task.scores?.completeness?.verdict || 'pending',
     tone: task.scores?.tone?.verdict || 'pending',
     format: task.scores?.format?.verdict || 'pending',
-  })
+  }
+}
 
-  useEffect(() => {
-    setDraft({
-      facts: task.scores?.facts?.verdict || 'pending',
-      completeness: task.scores?.completeness?.verdict || 'pending',
-      tone: task.scores?.tone?.verdict || 'pending',
-      format: task.scores?.format?.verdict || 'pending',
-    })
+function TaskDetail({ task, onReviewed }: { task: EvalTask; onReviewed: (task: EvalTask) => void }) {
+  const locked = task.timed_out || task.empty_output || task.execution_status === 'timeout' || task.execution_status === 'error'
+  const [note, setNote] = useState(task.human_note || '')
+  const [pending, setPending] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [draft, setDraft] = useState(() => taskVerdicts(task))
+  const [previousTask, setPreviousTask] = useState(task)
+
+  if (task !== previousTask) {
+    setPreviousTask(task)
+    setDraft(taskVerdicts(task))
     setNote(task.human_note || '')
-  }, [task])
+  }
 
   const changed = DIMENSIONS.some(([key]) => draft[key] !== task.scores?.[key]?.verdict)
 

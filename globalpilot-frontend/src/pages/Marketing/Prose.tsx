@@ -9,7 +9,7 @@ function renderInline(value: string) {
   return escapeHtml(value).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 }
 
-export function renderMarketingMarkdown(source: string) {
+function renderMarketingMarkdown(source: string) {
   const lines = source.replace(/\r\n/g, '\n').split('\n')
   const out: string[] = []
   let list: 'ul' | 'ol' | null = null

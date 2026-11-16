@@ -56,7 +56,10 @@ class RouteStatusCodeTests(unittest.TestCase):
         authorization = types.ModuleType("app.modules.teams.dependencies")
         authorization.get_current_member_from_query = fake_user_dependency
         rag_service = types.ModuleType("app.modules.rag.service")
-        for name in ("aask", "adelete_document", "adocument_file", "aindex_text", "alist_documents"):
+        for name in (
+            "aask", "adelete_document", "adocument_file", "aindex_text", "alist_documents",
+            "adocument_structure", "adocument_content", "adocument_asset",
+        ):
             setattr(rag_service, name, AsyncMock(name=name))
         runner = mock_module("app.modules.evaluation.engine.runner", (
             "_fail_run", "launch", "refresh_run_artifacts", "recover_expired_run", "recover_expired_runs",
