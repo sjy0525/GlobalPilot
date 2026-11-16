@@ -1,0 +1,2 @@
+# Additional runtime dependency for keyword retrieval.
+jieba==0.42.1

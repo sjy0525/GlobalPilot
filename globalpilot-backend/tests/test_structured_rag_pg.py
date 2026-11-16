@@ -5,6 +5,7 @@ and generation providers are local doubles. Real Docling/OCR corpus checks live
 in scripts/check_structured_pdf_corpus.py and are reported separately.
 """
 
+import asyncio
 import copy
 import importlib
 import sys
@@ -140,6 +141,63 @@ class StructuredRagPostgresTests(unittest.IsolatedAsyncioTestCase):
                 returned = await self.get(identifier, f"contents/{evidence['content_id']}", expected_version=1)
                 self.assertEqual(returned.status_code, 200, returned.text)
                 self.assertEqual(returned.json(), evidence)
+
+    async def test_keyword_recovers_table_outside_vector_top_20_in_http_and_sync(self):
+        question = "ZX91 Pro 支持多少瓦的快充？"
+        structure = copy.deepcopy(self.structure)
+        table = structure["contents"][2]
+        table["caption"] = "ZX91-Pro 快充规格"
+        table["markdown"] = "| Output | Rating |\n| --- | --- |\n| USB-C | 65 W |"
+
+        def embed_documents(texts):
+            return [[0.0, 1.0] if "ZX91-Pro" in text else [1.0, 0.0] for text in texts]
+
+        with patch.object(self.embeddings, "embed_documents", side_effect=embed_documents):
+            response = await self.upload(structure=structure)
+            self.assertEqual(response.status_code, 201, response.text)
+            document_id = response.json()["id"]
+            async with AsyncSession(self.engine) as db:
+                await self.service.aindex_text(
+                    db, self.brand_id, "|".join(f"Generic filler paragraph {n}" for n in range(21)),
+                    "filler.txt", team_id=self.team_id, actor_user_id=self.user_id,
+                )
+
+        async def ask():
+            response = await self.client.post("/api/query", json={"brand_id": str(self.brand_id), "question": question})
+            self.assertEqual(response.status_code, 200, response.text)
+            return response.json()
+
+        with patch.object(self.embeddings, "embed_query", return_value=[1.0, 0.0]):
+            with patch.object(self.service.settings, "rag_retrieval_mode", "vector"):
+                vector = await ask()
+                self.assertNotIn("65 W", vector["answer"])
+
+            with patch.object(self.service.settings, "rag_retrieval_mode", "hybrid"):
+                hybrid = await ask()
+                with patch.object(self.service, "vector_store", self.sync_store), patch.object(
+                    self.service, "rerank_documents", side_effect=lambda _q, hits, *, top_n: hits[:top_n],
+                ):
+                    sync = await asyncio.to_thread(
+                        self.service.search_documents, question, self.brand_id,
+                        team_id=self.team_id, actor_user_id=self.user_id,
+                    )
+
+        self.assertIn("65 W", hybrid["answer"])
+        source = next(source for source in hybrid["sources"] if source["content_id"] == "table-001")
+        self.assertEqual(source["document_id"], document_id)
+        self.assertEqual(source["channels"], ["keyword"])
+        self.assertIsNone(source["distance"])
+        self.assertIsNone(source["vector_distance"])
+        self.assertGreater(source["keyword_score"], 0)
+        self.assertAlmostEqual(source["rrf_score"], 1 / (60 + source["keyword_rank"]))
+        self.assertEqual((source["page_no"], source["document_version"]), (2, 1))
+        evidence = await self.get(document_id, "contents/table-001", expected_version=1)
+        self.assertEqual(evidence.status_code, 200, evidence.text)
+        self.assertEqual(evidence.json()["caption"], table["caption"])
+        self.assertIn("65 W", self.service.format_retrieved_context(sync))
+        result = await self.get(document_id, "structure")
+        self.assertNotIn("lexical_text", result.text)
+        self.assertNotIn("tokenizer_version", result.text)
 
     async def test_assets_structure_and_vectors_roll_back_together_after_sql_failure(self):
         uploaded = await self.upload()

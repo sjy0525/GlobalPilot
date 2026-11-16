@@ -12,7 +12,7 @@ _async_client: httpx.AsyncClient | None = None
 
 
 def initialize_async_rerank_client() -> httpx.AsyncClient:
-    """Prepare the client's TLS context in the startup worker without HTTP requests."""
+    """在启动线程中初始化 TLS 上下文。"""
     global _async_client
     with _client_lock:
         if _async_client is None:
@@ -100,11 +100,11 @@ def rerank_documents(
         response.raise_for_status()
         ranked = _rank_candidates(response.json(), candidates, top_n)
     except (httpx.HTTPError, ValueError, TypeError):
-        logger.warning("rerank failed, falling back to vector order", exc_info=True)
+        logger.warning("rerank failed, falling back to retrieval order", exc_info=True)
         return candidates[:top_n]
 
     if not ranked:
-        logger.warning("rerank returned no usable results, falling back to vector order")
+        logger.warning("rerank returned no usable results, falling back to retrieval order")
         return candidates[:top_n]
     return ranked[:top_n]
 
@@ -114,7 +114,6 @@ async def arerank_documents(query: str, candidates: list[tuple], top_n: int) -> 
         return []
     if len(candidates) <= 1:
         return candidates[:top_n]
-    # Startup normally prepares the client. Lazy callers also keep TLS setup off-loop.
     client = _async_client or await run_in_threadpool(initialize_async_rerank_client)
     try:
         response = await client.post(_rerank_url(), **_rerank_request(query, candidates, top_n))
@@ -123,11 +122,11 @@ async def arerank_documents(query: str, candidates: list[tuple], top_n: int) -> 
     except (httpx.HTTPError, ValueError, TypeError) as exc:
         await run_in_threadpool(
             logger.warning,
-            "rerank failed, falling back to vector order",
+            "rerank failed, falling back to retrieval order",
             exc_info=(type(exc), exc, exc.__traceback__),
         )
         return candidates[:top_n]
     if not ranked:
-        await run_in_threadpool(logger.warning, "rerank returned no usable results, falling back to vector order")
+        await run_in_threadpool(logger.warning, "rerank returned no usable results, falling back to retrieval order")
         return candidates[:top_n]
     return ranked

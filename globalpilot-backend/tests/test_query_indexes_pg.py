@@ -7,9 +7,12 @@ from uuid import uuid4
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 from sqlalchemy.engine import make_url
 
 from app.db.query_indexes import QUERY_INDEXES, apply_query_indexes, ensure_query_indexes
+from app.modules.rag.retrieval.lexical import TOKENIZER_VERSION
+from scripts.backfill_rag_lexical import backfill
 
 URL = os.environ.get("QUERY_INDEX_TEST_DATABASE_URL")
 
@@ -76,6 +79,58 @@ class QueryIndexMigrationTests(unittest.TestCase):
                 finally:
                     with psycopg.connect(self.url, autocommit=True) as conn:
                         conn.execute("DROP INDEX ix_embedding_collection_brand_document")
+
+    def test_lexical_backfill_only_updates_current_chunks_and_is_repeatable(self):
+        collection, team, brand, current_doc, legacy_doc = (uuid4() for _ in range(5))
+        body = "X1-Pro 支持 USB-C 65 W 快充"
+        embedding = [1.0, 2.0, 3.0]
+        shared = {"team_id": str(team), "brand_id": str(brand)}
+        metadata = {
+            "current": {**shared, "document_id": str(current_doc), "document_version": 2},
+            "stale": {**shared, "document_id": str(current_doc), "document_version": 1},
+            "legacy": {**shared, "document_id": str(legacy_doc)},
+            "versionless": {**shared, "document_id": str(current_doc)},
+        }
+        with psycopg.connect(self.url, autocommit=True) as conn:
+            # Backfill only accesses metadata/body; an array records a vector in
+            # the index migration suite without requiring a database extension.
+            conn.execute("""
+                ALTER TABLE langchain_pg_embedding
+                    ADD COLUMN id varchar PRIMARY KEY,
+                    ADD COLUMN document text,
+                    ADD COLUMN embedding double precision[];
+                CREATE TABLE langchain_pg_collection (uuid uuid PRIMARY KEY, name text);
+                CREATE TABLE brands (id uuid PRIMARY KEY, team_id uuid);
+                CREATE TABLE knowledge_documents (
+                    id uuid PRIMARY KEY, team_id uuid, brand_id uuid, version int, structured jsonb
+                );
+            """)
+            conn.execute("INSERT INTO langchain_pg_collection VALUES (%s, 'brand_knowledge')", (collection,))
+            conn.execute("INSERT INTO brands VALUES (%s, %s)", (brand, team,))
+            conn.execute(
+                "INSERT INTO knowledge_documents VALUES (%s,%s,%s,2,NULL), (%s,%s,%s,1,NULL)",
+                (current_doc, team, brand, legacy_doc, team, brand),
+            )
+            with conn.cursor() as cursor:
+                cursor.executemany(
+                    "INSERT INTO langchain_pg_embedding (id, collection_id, document, embedding, cmetadata) "
+                    "VALUES (%s, %s, %s, %s, %s)",
+                    [(key, collection, body, embedding, Jsonb(meta)) for key, meta in metadata.items()],
+                )
+        ensure_query_indexes(self.url)
+        self.assertEqual(backfill(self.url, batch_size=1), {"selected": 2, "updated": 2, "skipped": 0})
+        self.assertEqual(backfill(self.url, batch_size=1), {"selected": 0, "updated": 0, "skipped": 0})
+        with psycopg.connect(self.url) as conn:
+            rows = conn.execute("SELECT id, cmetadata, document, embedding FROM langchain_pg_embedding").fetchall()
+            self.assertEqual({row[0] for row in rows}, set(metadata))
+            for key, meta, cached_body, cached_embedding in rows:
+                self.assertEqual(cached_body, body)
+                self.assertEqual(cached_embedding, embedding)
+                if key in {"current", "legacy"}:
+                    terms = meta.pop("lexical_text").split()
+                    self.assertTrue({"x1pro", "usbc", "65w"}.issubset(terms))
+                    self.assertEqual(meta.pop("tokenizer_version"), TOKENIZER_VERSION)
+                self.assertEqual(meta, metadata[key])
 
 
 if __name__ == "__main__":

@@ -134,8 +134,7 @@ async def query_rag(
 ):
     brand = await _get_brand_or_404(db, body.brand_id, team_id=member.team_id)
     brand_id = brand.id
-    # Vector retrieval has its own Session. Release the brand lookup connection
-    # before retrieval and the potentially long external model request.
+    # 检索前释放品牌查询连接。
     await db.rollback()
     return await aask(body.question, brand_id, team_id=member.team_id, actor_user_id=member.user_id)
 

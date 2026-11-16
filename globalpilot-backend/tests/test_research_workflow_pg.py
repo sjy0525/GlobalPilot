@@ -36,6 +36,7 @@ from sqlalchemy.orm import sessionmaker
 from app.db.base import Base
 from app.modules.brands.models import Brand
 from app.modules.briefs.models import Brief
+from app.modules.memory.models import MemoryJob
 from app.modules.rag.models import KnowledgeAsset, KnowledgeDocument
 from app.modules.users.models import User
 from app.modules.teams.models import Team, TeamMember
@@ -107,12 +108,14 @@ class ResearchWorkflowPostgresTests(unittest.TestCase):
         cls.sessions = sessionmaker(cls.engine, autoflush=False)
         Base.metadata.create_all(cls.engine, tables=[
             User.__table__, Team.__table__, TeamMember.__table__, Brand.__table__, Brief.__table__, KnowledgeDocument.__table__, KnowledgeAsset.__table__,
+            MemoryJob.__table__,
         ])
         cls.prompts = []
         cls.embeddings = LocalEmbeddings()
         settings = types.SimpleNamespace(
             database_url=cls.sqlalchemy_url, rag_chunk_size=500, rag_chunk_overlap=80,
             rag_fetch_k=20, rag_recall_k=10, rag_search_k=3, rag_max_distance=0.64,
+            rag_retrieval_mode="hybrid", rag_keyword_fetch_k=20, rag_fusion_k=20, rag_rrf_constant=60,
         )
         # All config/provider boundaries are isolated before loading app sources.
         llm_module = fake_module("app.infra.ai.llm", llm=ToolCallingLocalModel(

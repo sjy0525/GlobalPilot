@@ -147,8 +147,9 @@ class StartupPostgresConcurrencyTests(unittest.TestCase):
             self.assertEqual(connection.execute("SELECT count(*) FROM brands").fetchone()[0], 0)
             self.assertEqual(connection.execute("SELECT count(*) FROM eval_test_sets").fetchone()[0], 1)
             self.assertEqual(connection.execute("""SELECT count(*) FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid
-                WHERE c.relname IN ('ix_embedding_collection_brand_document','ix_briefs_user_updated_active','ix_eval_tasks_run_status')
-                AND i.indisvalid""").fetchone()[0], 3)
+                WHERE c.relname IN ('ix_embedding_collection_brand_document','ix_embedding_lexical',
+                                   'ix_briefs_user_updated_active','ix_eval_tasks_run_status')
+                AND i.indisvalid""").fetchone()[0], 4)
 
     def test_four_workers_initialize_a_completely_empty_database(self):
         self.assert_parallel_cold_start(single_connection_pool=False)

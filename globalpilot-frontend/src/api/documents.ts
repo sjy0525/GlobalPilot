@@ -21,7 +21,13 @@ export type BrandQuerySource = {
   source: string;
   document_id: string;
   chunk_index: number;
-  distance: number;
+  distance: number | null;
+  vector_rank: number | null;
+  vector_distance: number | null;
+  keyword_rank: number | null;
+  keyword_score: number | null;
+  rrf_score: number | null;
+  channels: ("vector" | "keyword")[];
   content: string;
   content_id?: string;
   content_ids?: string[];

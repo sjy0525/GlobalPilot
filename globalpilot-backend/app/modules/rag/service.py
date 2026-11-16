@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from uuid import UUID, uuid4
 
@@ -25,6 +26,8 @@ from app.modules.teams.authorization import (
 )
 from app.modules.rag.processing.loaders import media_type_for
 from app.infra.ai.llm import llm
+from app.modules.rag.retrieval.hybrid import merge_hits, rank_by_rrf
+from app.modules.rag.retrieval.lexical import asearch_lexical, search_lexical, with_lexical_metadata
 from app.modules.rag.retrieval.rerank import arerank_documents, rerank_documents
 from app.modules.rag.processing.splitter import asplit_to_documents, split_to_documents
 from app.modules.rag.processing.structured import structured_documents, validate_structure
@@ -171,7 +174,7 @@ def _asset_record(document_id, asset):
 
 
 def _embedding_inputs(chunks):
-    # Add retrieval context without changing original evidence/table Markdown.
+    # 向量化时补充检索上下文。
     return [
         (f"来源：{chunk.metadata.get('source')}\n"
          f"章节：{' / '.join(chunk.metadata.get('section_path', []))}\n"
@@ -275,6 +278,7 @@ def index_text(
     vectors = store.embeddings.embed_documents(_embedding_inputs(chunks))
     if len(vectors) != len(chunks):
         raise RuntimeError("Embedding count does not match document chunks")
+    indexed_chunks = with_lexical_metadata(chunks)
 
     # Own a fresh, short transaction. Provider work above holds no document lock.
     with Session(bind=db.get_bind(), expire_on_commit=False) as write, write.begin():
@@ -293,7 +297,7 @@ def index_text(
         if structured is not None or had_structure:
             write.execute(delete(KnowledgeAsset).where(KnowledgeAsset.document_id == identifier))
             write.add_all([_asset_record(identifier, asset) for asset in assets or []])
-        write_document_chunks(write, store, str(brand_id), str(identifier), chunks, vectors, team_id=str(team_id))
+        write_document_chunks(write, store, str(brand_id), str(identifier), indexed_chunks, vectors, team_id=str(team_id))
         result = _serialize_document(record)
     return result
 
@@ -389,7 +393,7 @@ def _normalize_chunk(text: str) -> str:
     return " ".join(text.split())
 
 
-def _recall_candidates(hits: list[tuple]) -> list[tuple]:
+def _vector_candidates(hits: list[tuple]) -> list[tuple]:
     selected: list[tuple] = []
     seen: set[str] = set()
 
@@ -410,6 +414,18 @@ def _recall_candidates(hits: list[tuple]) -> list[tuple]:
             break
 
     return selected
+
+
+def _combine_hits(vector_hits, keyword_hits):
+    if keyword_hits is None:
+        return vector_hits
+    return merge_hits(vector_hits, keyword_hits, max_distance=settings.rag_max_distance)
+
+
+def _rerank_candidates(hydrated, *, hybrid: bool):
+    if hybrid:
+        return rank_by_rrf(hydrated, constant=settings.rag_rrf_constant, limit=settings.rag_fusion_k)
+    return _vector_candidates(hydrated)
 
 
 def _recheck_brand_scope(*, team_id, actor_user_id, brand_id):
@@ -447,21 +463,16 @@ def _visible_hit_statement(hits, *, team_id, brand_id):
     )
 
 
-def _keep_visible_hits(hits, allowed_ids, *, team_id, brand_id):
-    return [(document, distance) for document, distance in hits
-            if _hit_document_id(document, team_id=team_id, brand_id=brand_id) in allowed_ids]
-
-
 def _hydrate_hits(hits, records, *, team_id, brand_id):
-    """Resolve vector hits to current canonical source evidence, failing closed."""
     by_id = {record.id: record for record in records}
     hydrated = []
-    for document, distance in hits:
+    for document, scores in hits:
         record = by_id.get(_hit_document_id(document, team_id=team_id, brand_id=brand_id))
         if record is None:
             continue
         version = document.metadata.get("document_version")
-        if version is not None and version != record.version:
+        # 无版本的旧片段按版本 1 校验。
+        if (1 if version is None else version) != record.version:
             continue
         structure = record.structured
         if structure:
@@ -481,8 +492,9 @@ def _hydrate_hits(hits, records, *, team_id, brand_id):
             document = Document(page_content=unit["text"], metadata=metadata)
         else:
             document = Document(page_content=document.page_content,
-                                metadata={**document.metadata, "document_version": record.version})
-        hydrated.append((document, distance))
+                                metadata={**document.metadata, "source": record.source,
+                                          "document_version": record.version})
+        hydrated.append((document, scores))
     return hydrated
 
 
@@ -502,6 +514,10 @@ def format_retrieved_context(docs):
 def _sources_from_hits(docs):
     return [{"source": doc.metadata.get("source"), "document_id": doc.metadata.get("document_id"),
              "chunk_index": doc.metadata.get("chunk_index"), "distance": distance, "content": doc.page_content,
+             **doc.metadata.get("retrieval", {
+                 "vector_rank": None, "vector_distance": distance, "keyword_rank": None,
+                 "keyword_score": None, "rrf_score": None, "channels": ["vector"],
+             }),
              **{key: doc.metadata.get(key) for key in (
                  "document_version", "content_id", "content_ids", "page_no", "page_numbers",
                  "kind", "section_path", "provenance", "evidence",
@@ -513,7 +529,7 @@ def _sources_from_hits(docs):
 
 def _expected_evidence_versions(docs):
     return {UUID(doc.metadata["document_id"]): doc.metadata["document_version"]
-            for doc, _ in docs if doc.metadata.get("evidence")}
+            for doc, _ in docs}
 
 
 def _evidence_version_statement(expected, *, team_id, brand_id):
@@ -549,19 +565,36 @@ async def _arecheck_evidence_versions(docs, *, team_id, brand_id):
 
 def search_documents(question: str, brand_id: UUID, *, team_id: UUID, actor_user_id: UUID):
     from app.db.database import sessionLocal
+
+    # 1. 校验团队和品牌权限
     with sessionLocal() as check:
         _require_brand_scope(check, team_id=team_id, actor_user_id=actor_user_id, brand_id=brand_id)
-    hits = vector_store.similarity_search_with_score(
+
+    # 2. 向量召回与关键词召回
+    vector_hits = vector_store.similarity_search_with_score(
         query=question,
         k=settings.rag_fetch_k,
         filter=brand_filter(_brand_key(brand_id), team_id=str(team_id)),
     )
+    hybrid = settings.rag_retrieval_mode == "hybrid"
+    keyword_hits = search_lexical(
+        vector_store, question, k=settings.rag_keyword_fetch_k, team_id=str(team_id), brand_id=str(brand_id),
+    ) if hybrid else None
+
+    # 3. 合并命中的片段
+    hits = _combine_hits(vector_hits, keyword_hits)
+
+    # 4. 回读证据并校验版本
     with sessionLocal() as check:
         _require_brand_scope(check, team_id=team_id, actor_user_id=actor_user_id, brand_id=brand_id)
         records = list(check.scalars(_visible_hit_statement(hits, team_id=team_id, brand_id=brand_id)))
         hydrated = _hydrate_hits(hits, records, team_id=team_id, brand_id=brand_id)
-    candidates = _recall_candidates(hydrated)
+
+    # 5. 融合并重排候选
+    candidates = _rerank_candidates(hydrated, hybrid=hybrid)
     ranked = rerank_documents(question, candidates, top_n=settings.rag_search_k)
+
+    # 6. 复核权限和证据版本
     _recheck_brand_scope(team_id=team_id, actor_user_id=actor_user_id, brand_id=brand_id)
     _recheck_evidence_versions(ranked, team_id=team_id, brand_id=brand_id)
     return ranked
@@ -643,6 +676,7 @@ async def aindex_text(
     vectors = await store.embeddings.aembed_documents(_embedding_inputs(chunks))
     if len(vectors) != len(chunks):
         raise RuntimeError("Embedding count does not match document chunks")
+    indexed_chunks = await run_in_threadpool(with_lexical_metadata, chunks)
 
     # Never reuse the request's autobegun read transaction or PGVector's own Session.
     async with AsyncSession(bind=db.bind, expire_on_commit=False) as write:
@@ -662,7 +696,7 @@ async def aindex_text(
             if structured is not None or had_structure:
                 await write.execute(delete(KnowledgeAsset).where(KnowledgeAsset.document_id == identifier))
                 write.add_all([_asset_record(identifier, asset) for asset in assets or []])
-            await awrite_document_chunks(write, store, str(brand_id), str(identifier), chunks, vectors, team_id=str(team_id))
+            await awrite_document_chunks(write, store, str(brand_id), str(identifier), indexed_chunks, vectors, team_id=str(team_id))
             result = _serialize_document(record)
     return result
 
@@ -716,19 +750,44 @@ async def adelete_document(
     return {"id": str(document_id), "deleted_chunks": deleted_chunks, "version": version}
 
 
+async def _asearch_keywords(question: str, *, team_id: UUID, brand_id: UUID):
+    store = await get_async_vector_store()
+    return await asearch_lexical(
+        store, question, k=settings.rag_keyword_fetch_k, team_id=str(team_id), brand_id=str(brand_id),
+    )
+
+
 async def asearch_documents(question: str, brand_id: UUID, *, team_id: UUID, actor_user_id: UUID):
     from app.db.database import async_sessionLocal
+
+    # 1. 校验团队和品牌权限
     async with async_sessionLocal() as check:
         await _arequire_brand_scope(check, team_id=team_id, actor_user_id=actor_user_id, brand_id=brand_id)
-    hits = await async_vector_store.asimilarity_search_with_score(
+
+    # 2. 并行执行向量召回与关键词召回
+    vector_search = async_vector_store.asimilarity_search_with_score(
         query=question, k=settings.rag_fetch_k, filter=brand_filter(_brand_key(brand_id), team_id=str(team_id)),
     )
+    hybrid = settings.rag_retrieval_mode == "hybrid"
+    if hybrid:
+        vector_hits, keyword_hits = await asyncio.gather(vector_search, _asearch_keywords(question, team_id=team_id, brand_id=brand_id))
+    else:
+        vector_hits, keyword_hits = await vector_search, None
+
+    # 3. 合并命中的片段
+    hits = _combine_hits(vector_hits, keyword_hits)
+
+    # 4. 回读证据并校验版本
     async with async_sessionLocal() as check:
         await _arequire_brand_scope(check, team_id=team_id, actor_user_id=actor_user_id, brand_id=brand_id)
         records = list((await check.scalars(_visible_hit_statement(hits, team_id=team_id, brand_id=brand_id))).all())
         hydrated = _hydrate_hits(hits, records, team_id=team_id, brand_id=brand_id)
-    candidates = _recall_candidates(hydrated)
+
+    # 5. 融合并重排候选
+    candidates = _rerank_candidates(hydrated, hybrid=hybrid)
     ranked = await arerank_documents(question, candidates, top_n=settings.rag_search_k)
+
+    # 6. 复核权限和证据版本
     await _arecheck_brand_scope(team_id=team_id, actor_user_id=actor_user_id, brand_id=brand_id)
     await _arecheck_evidence_versions(ranked, team_id=team_id, brand_id=brand_id)
     return ranked

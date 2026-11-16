@@ -13,18 +13,12 @@ from app.infra.ai.embeddings import embeddings
 
 logger = logging.getLogger(__name__)
 
-# Bound SQL compilation and 1024-dimensional vector adaptation per event-loop
-# turn, as well as PostgreSQL's parameter count. All batches share the caller's
-# document transaction; this is not a commit or atomicity boundary.
+# 限制单批 SQL 参数量，各批共用同一事务。
 DOCUMENT_INSERT_BATCH_SIZE = 64
 
 
 class _LazyVectorStore:
-    """Defer database initialization until the startup worker or a sync caller.
-
-    Keep the shared handle stable for services that import ``vector_store``.
-    The lock prevents simultaneous callers from creating separate collections.
-    """
+    """延迟初始化并复用同一个同步向量库实例。"""
 
     def __init__(self):
         self._store: PGVector | None = None
@@ -67,7 +61,7 @@ vector_store = _LazyVectorStore()
 
 
 class _AsyncVectorStore:
-    """Keep native async PGVector initialization serialized and retryable."""
+    """串行初始化异步向量库，失败后可重试。"""
 
     def __init__(self):
         self._store: PGVector | None = None
@@ -83,15 +77,14 @@ class _AsyncVectorStore:
                     use_jsonb=True,
                     async_mode=True,
                 )
-                # PGVector sets its own init flag before awaiting schema setup.
-                # Cache only completed initialization; failed instances cannot retry.
+                # 初始化成功后再缓存实例。
                 await store.__apost_init__()
                 self._store = store
             return self._store
 
     async def close(self) -> None:
         async with self._lock:
-            # The application owns the shared async engine and disposes it once.
+            # 共享连接池由应用统一关闭。
             self._store = None
 
     async def aadd_documents(self, *args, **kwargs):
@@ -127,8 +120,7 @@ async def get_async_vector_store() -> PGVector:
 
 
 def brand_filter(brand_id: str, *, team_id: str) -> dict:
-    # PGVector's $eq uses jsonb_path_match(), which cannot use our B-tree.
-    # A singleton $in produces the same exact UUID-string match with ->>.
+    # 单值 $in 使用 ->> 精确匹配，可利用 B-tree 索引。
     return {"brand_id": {"$in": [brand_id]}, "team_id": {"$in": [team_id]}}
 
 
@@ -186,11 +178,7 @@ def _validate_chunk_scope(documents, *, team_id, brand_id, document_id):
 
 
 def write_document_chunks(db, store, brand_id: str, document_id: str, documents, vectors, *, team_id: str) -> int:
-    """Replace chunks in the caller's transaction, after locking its document row.
-
-    Empty documents delete the index. The initialized store supplies table mappings;
-    it must not create its own Session or commit any part of this operation.
-    """
+    """锁定文档行后，在调用方事务内替换片段。"""
     _validate_chunk_scope(documents, team_id=team_id, brand_id=brand_id, document_id=document_id)
     collection = store.get_collection(db)
     if collection is None:
@@ -204,7 +192,7 @@ def write_document_chunks(db, store, brand_id: str, document_id: str, documents,
 
 
 async def awrite_document_chunks(db, store, brand_id: str, document_id: str, documents, vectors, *, team_id: str) -> int:
-    """Async equivalent of write_document_chunks; never commits independently."""
+    """在调用方事务内异步替换片段。"""
     _validate_chunk_scope(documents, team_id=team_id, brand_id=brand_id, document_id=document_id)
     collection = await store.aget_collection(db)
     if collection is None:
@@ -256,8 +244,7 @@ def load_document_text(brand_id: str, document_id: str, *, team_id: str, db=None
         with store._make_sync_session() as session:
             rows = read_rows(session)
     else:
-        # Preview passes its snapshot Session, so metadata and chunks use the
-        # same transaction and no second connection is checked out.
+        # 预览复用同一事务读取文档元数据和片段。
         rows = read_rows(db)
     return _join_document_rows(rows)
 

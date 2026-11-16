@@ -12,6 +12,8 @@ from psycopg import sql
 from psycopg.rows import dict_row
 from sqlalchemy.engine import make_url
 
+from app.modules.rag.retrieval.lexical import LEXICAL_INDEX_EXPRESSION
+
 
 @dataclass(frozen=True)
 class QueryIndex:
@@ -22,6 +24,7 @@ class QueryIndex:
     opclasses: tuple[str, ...]
     collations: tuple[str | None, ...]
     predicate: str | None = None
+    method: str = "btree"
 
 
 QUERY_INDEXES = (
@@ -31,6 +34,10 @@ QUERY_INDEXES = (
         (False, False, False),
         ("pg_catalog.uuid_ops", "pg_catalog.text_ops", "pg_catalog.text_ops"),
         (None, "pg_catalog.default", "pg_catalog.default"),
+    ),
+    QueryIndex(
+        "ix_embedding_lexical", "langchain_pg_embedding", (LEXICAL_INDEX_EXPRESSION,),
+        (False,), ("pg_catalog.tsvector_ops",), (None,), method="gin",
     ),
     QueryIndex(
         "ix_briefs_user_updated_active", "briefs", ("user_id", "updated_at"),
@@ -79,7 +86,7 @@ def _validate_index(state, index):
     predicate = (state["predicate"] or "").strip("() ") if state else None
     if not state or not (
         state["indisvalid"] and state["indisready"] and not state["indisunique"]
-        and state["table_name"] == index.table and state["method"] == "btree"
+        and state["table_name"] == index.table and state["method"] == index.method
         and state["indnatts"] == len(index.keys) and tuple(state["keys"]) == index.keys
         and tuple(map(int, state["options"].split())) == expected_options
         and tuple(state["opclasses"]) == index.opclasses
@@ -108,8 +115,8 @@ def apply_query_indexes(connection) -> list[dict[str, str]]:
                 sql.SQL(key + (" DESC" if desc else ""))
                 for key, desc in zip(index.keys, index.descending, strict=True)
             )
-            statement = sql.SQL("CREATE INDEX CONCURRENTLY IF NOT EXISTS {} ON {} USING btree ({})").format(
-                sql.Identifier(index.name), sql.Identifier(schema, index.table), keys,
+            statement = sql.SQL("CREATE INDEX CONCURRENTLY IF NOT EXISTS {} ON {} USING {} ({})").format(
+                sql.Identifier(index.name), sql.Identifier(schema, index.table), sql.Identifier(index.method), keys,
             )
             if index.predicate:
                 statement += sql.SQL(" WHERE " + index.predicate)

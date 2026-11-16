@@ -6,6 +6,7 @@ from app.modules.evaluation.engine.cases import TEST_SET_VERSION
 from app.modules.evaluation.engine.pricing import COST_SCOPE, PRICE_CARD_VERSION
 from app.modules.evaluation.engine.scoring import CRITERIA, LENGTH_LIMITS, SCORING_RULES_VERSION
 from app.core.config import settings
+from app.modules.rag.retrieval.lexical import TOKENIZER_VERSION
 
 
 def scoring_fingerprint() -> str:
@@ -99,10 +100,15 @@ def model_settings() -> dict:
         },
         "rerank": {"model": settings.dashscope_rerank_model},
         "rag": {
+            "retrieval_mode": settings.rag_retrieval_mode,
             "recall_k": settings.rag_recall_k,
             "search_k": settings.rag_search_k,
             "fetch_k": settings.rag_fetch_k,
             "max_distance": settings.rag_max_distance,
+            "keyword_fetch_k": settings.rag_keyword_fetch_k,
+            "fusion_k": settings.rag_fusion_k,
+            "rrf_constant": settings.rag_rrf_constant,
+            "tokenizer_version": TOKENIZER_VERSION,
         },
         "price_card": PRICE_CARD_VERSION,
         "cost_scope": COST_SCOPE,

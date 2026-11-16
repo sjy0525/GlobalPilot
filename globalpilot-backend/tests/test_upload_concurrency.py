@@ -85,6 +85,7 @@ class UploadConcurrencyTests(unittest.IsolatedAsyncioTestCase):
         self.missing_brand = self.missing_document = False
         self.held_stage = None
         self.entered, self.release = asyncio.Event(), asyncio.Event()
+        self.keyword_entered = asyncio.Event()
         self.stages = []
 
         async def execute(statement):
@@ -99,7 +100,12 @@ class UploadConcurrencyTests(unittest.IsolatedAsyncioTestCase):
                 row = None
             result.scalar_one_or_none.return_value = row
             result.scalars.return_value.all.return_value = [] if row is None else [row]
-            result.all.return_value = [] if row is None else [row]
+            if row is None:
+                result.all.return_value = []
+            elif [column["name"] for column in statement.column_descriptions] == ["id", "version"]:
+                result.all.return_value = [(row.id, row.version)]
+            else:
+                result.all.return_value = [row]
             return result
 
         def add(record):
@@ -155,6 +161,10 @@ class UploadConcurrencyTests(unittest.IsolatedAsyncioTestCase):
                 "source": "sample.txt", "team_id": str(self.team_id), "brand_id": str(self.brand_id), "document_id": str(self.document_id), "chunk_index": 0,
             }), 0.0)]
 
+        async def search_keywords(*args, **kwargs):
+            self.keyword_entered.set()
+            return []
+
         async def rerank(question, candidates, top_n):
             await self.stage("rerank")
             return candidates[:top_n]
@@ -174,6 +184,8 @@ class UploadConcurrencyTests(unittest.IsolatedAsyncioTestCase):
             patch("app.db.database.async_sessionLocal", fresh_session),
             patch.object(self.brand_routes, "require_active_team_member_async", AsyncMock()),
             patch.object(self.service, "async_vector_store", self.vector),
+            patch.object(self.service.settings, "rag_retrieval_mode", "hybrid"),
+            patch.object(self.service, "asearch_lexical", AsyncMock(side_effect=search_keywords)),
             patch.object(self.service, "awrite_document_chunks", AsyncMock(side_effect=write_vectors)),
             patch.object(self.service, "get_async_vector_store", AsyncMock(return_value=self.vector)),
             patch.object(self.service, "AsyncSession", fresh_session),
@@ -385,6 +397,18 @@ class UploadConcurrencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"answer": self.service.INSUFFICIENT_CONTEXT_ANSWER, "sources": []})
         self.chain.ainvoke.assert_not_awaited()
+
+    async def test_keyword_recall_starts_while_vector_recall_is_waiting(self):
+        self.held_stage = "search"
+        query = asyncio.create_task(self.client.post("/api/query", json={"brand_id": str(self.brand_id), "question": "question"}))
+        try:
+            await self.assert_ping_before_completion(query)
+            await asyncio.wait_for(self.keyword_entered.wait(), timeout=2)
+            self.assertFalse(query.done())
+        finally:
+            self.release.set()
+            response = await asyncio.wait_for(query, timeout=3)
+        self.assertEqual(response.status_code, 200)
 
     async def test_sync_service_entry_points_remain_available_for_background_callers(self):
         for name in ("index_text", "list_documents", "document_file", "delete_document", "search_documents", "ask"):
