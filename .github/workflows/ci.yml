@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: globalpilot-frontend
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: globalpilot-frontend/package.json
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: globalpilot-frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: node --test tests/*.test.mjs
+      - run: pnpm build
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: globalpilot-backend
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.5-pg17-bookworm
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci-local-only
+          POSTGRES_DB: test_globalpilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d test_globalpilot"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql+psycopg://ci:ci-local-only@127.0.0.1:5432/test_globalpilot
+      STARTUP_TEST_ADMIN_URL: postgresql+psycopg://ci:ci-local-only@127.0.0.1:5432/postgres
+      JWT_SECRET_KEY: ci-local-only-signing-key-not-for-deployment
+      DASHSCOPE_API_KEY: ci-placeholder
+      DASHSCOPE_BASE_URL: http://127.0.0.1:1/v1
+      DASHSCOPE_RERANK_API_KEY: ci-placeholder
+      DASHSCOPE_RERANK_BASE_URL: http://127.0.0.1:1/v1
+      DEEPSEEK_API_KEY: ci-placeholder
+      DEEPSEEK_BASE_URL: http://127.0.0.1:1/v1
+      BAIDU_SEARCH_URL: http://127.0.0.1:1/search
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: globalpilot-backend/requirements.txt
+      - run: python -m pip install -r requirements.txt
+      - name: Run backend regression and PostgreSQL integration tests
+        run: |
+          export AUTH_CONCURRENCY_TEST_DATABASE_URL="$DATABASE_URL"
+          export CONCURRENCY_MIGRATIONS_TEST_DATABASE_URL="$DATABASE_URL"
+          export EVAL_TEST_DATABASE_URL="$DATABASE_URL"
+          export GLOBALPILOT_RAG_TEST_DATABASE_URL="$DATABASE_URL"
+          export GLOBALPILOT_RESEARCH_TEST_DATABASE_URL="$DATABASE_URL"
+          export GLOBALPILOT_REVISION_TEST_DATABASE_URL="$DATABASE_URL"
+          export QUERY_INDEX_TEST_DATABASE_URL="$DATABASE_URL"
+          export RAG_BATCH_TEST_DATABASE_URL="$DATABASE_URL"
+          export TEAM_AUTH_TEST_DATABASE_URL="$DATABASE_URL"
+          export WORKFLOW_INDEX_TEST_DATABASE_URL="$DATABASE_URL"
+          export WORKFLOW_TEST_DATABASE_URL="$DATABASE_URL"
+          python -B -m unittest discover -s tests -v
